@@ -310,6 +310,37 @@ DECIMAL(38,10)	-1200000000000000000000000000.0000000000
 DECIMAL(38,10)	0.0000000000
 DECIMAL(38,10)	NULL
 
+# Normalized constants on both sides of the int64/hugeint constructor boundary.
+statement ok
+SET VARIABLE plan = (SELECT json FROM get_substrait_json('SELECT a*CAST(99999999999999999 AS DECIMAL(17,0)) AS r FROM narrow'));
+
+query TT
+SELECT typeof(r), r::VARCHAR FROM from_substrait_json(getvariable('plan')) ORDER BY r NULLS LAST
+----
+DECIMAL(18,0)	0
+DECIMAL(18,0)	99999999999999999
+DECIMAL(18,0)	NULL
+
+statement ok
+SET VARIABLE plan = (SELECT json FROM get_substrait_json('SELECT a*CAST(999999999999999999 AS DECIMAL(18,0)) AS r FROM narrow'));
+
+query TT
+SELECT typeof(r), r::VARCHAR FROM from_substrait_json(getvariable('plan')) ORDER BY r NULLS LAST
+----
+DECIMAL(18,0)	0
+DECIMAL(18,0)	999999999999999999
+DECIMAL(18,0)	NULL
+
+statement ok
+SET VARIABLE plan = (SELECT json FROM get_substrait_json('SELECT a*CAST(9999999999999999999 AS DECIMAL(19,0)) AS r FROM narrow'));
+
+query TT
+SELECT typeof(r), r::VARCHAR FROM from_substrait_json(getvariable('plan')) ORDER BY r NULLS LAST
+----
+DECIMAL(20,0)	0
+DECIMAL(20,0)	9999999999999999999
+DECIMAL(20,0)	NULL
+
 # A constant with meaningful fractional digits still requires rejection when scale would be lost.
 statement error
 CALL get_substrait('SELECT a*0.1234567890 FROM amount')

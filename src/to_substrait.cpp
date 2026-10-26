@@ -3,6 +3,8 @@
 #include "duckdb/catalog/catalog_entry/duck_table_entry.hpp"
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/enums/expression_type.hpp"
+#include "duckdb/common/types/decimal.hpp"
+#include "duckdb/common/types/hugeint.hpp"
 #include "duckdb/common/types/value.hpp"
 #include "duckdb/execution/expression_executor.hpp"
 #include "duckdb/execution/index/art/art_key.hpp"
@@ -374,6 +376,9 @@ static Value NormalizeDecimalConstant(const Value &value) {
 		digits /= 10;
 	} while (digits != 0);
 	precision = MaxValue(precision, scale);
+	if (precision < Decimal::MAX_WIDTH_INT64) {
+		return Value::DECIMAL(Hugeint::Cast<int64_t>(unscaled), precision, scale);
+	}
 	return Value::DECIMAL(unscaled, precision, scale);
 }
 
