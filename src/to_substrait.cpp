@@ -361,25 +361,20 @@ static Value NormalizeDecimalConstant(const Value &value) {
 	if (value.IsNull()) {
 		return value;
 	}
-	auto text = value.ToString();
+	auto unscaled = IntegralValue::Get(value);
 	auto scale = DecimalType::GetScale(value.type());
-	while (scale > 0 && text.back() == '0') {
-		text.pop_back();
+	while (scale > 0 && unscaled % 10 == 0) {
+		unscaled /= 10;
 		scale--;
 	}
 	uint8_t precision = 0;
-	bool significant = false;
-	for (auto ch : text) {
-		if (ch < '0' || ch > '9') {
-			continue;
-		}
-		significant = significant || ch != '0';
-		if (significant) {
-			precision++;
-		}
-	}
-	precision = MaxValue<uint8_t>(1, MaxValue(precision, scale));
-	return value.DefaultCastAs(LogicalType::DECIMAL(precision, scale));
+	auto digits = unscaled;
+	do {
+		precision++;
+		digits /= 10;
+	} while (digits != 0);
+	precision = MaxValue(precision, scale);
+	return Value::DECIMAL(unscaled, precision, scale);
 }
 
 void DuckDBToSubstrait::TransformFunctionExpression(Expression &dexpr, substrait::Expression &sexpr,

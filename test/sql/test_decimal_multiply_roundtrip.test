@@ -283,6 +283,33 @@ DECIMAL(38,12)	0.000000000000
 DECIMAL(38,12)	0.000000000000
 DECIMAL(38,12)	NULL
 
+# Normalization preserves the full 38-digit coefficient and stops at scale zero.
+statement ok
+CREATE TABLE narrow (a DECIMAL(1,0));
+
+statement ok
+INSERT INTO narrow VALUES (0), (1), (NULL);
+
+statement ok
+SET VARIABLE plan = (SELECT json FROM get_substrait_json('SELECT a*CAST(99999999999999999999999999999999999999 AS DECIMAL(38,0)) AS r FROM narrow'));
+
+query TT
+SELECT typeof(r), r::VARCHAR FROM from_substrait_json(getvariable('plan')) ORDER BY r NULLS LAST
+----
+DECIMAL(38,0)	0
+DECIMAL(38,0)	99999999999999999999999999999999999999
+DECIMAL(38,0)	NULL
+
+statement ok
+SET VARIABLE plan = (SELECT json FROM get_substrait_json('SELECT a*CAST(-1200000000000000000000000000.0000000000 AS DECIMAL(38,10)) AS r FROM narrow'));
+
+query TT
+SELECT typeof(r), r::VARCHAR FROM from_substrait_json(getvariable('plan')) ORDER BY r NULLS LAST
+----
+DECIMAL(38,10)	-1200000000000000000000000000.0000000000
+DECIMAL(38,10)	0.0000000000
+DECIMAL(38,10)	NULL
+
 # A constant with meaningful fractional digits still requires rejection when scale would be lost.
 statement error
 CALL get_substrait('SELECT a*0.1234567890 FROM amount')
