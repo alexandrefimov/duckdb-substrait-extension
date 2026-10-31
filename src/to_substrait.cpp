@@ -376,7 +376,7 @@ static Value NormalizeDecimalConstant(const Value &value) {
 		digits /= 10;
 	} while (digits != 0);
 	precision = MaxValue(precision, scale);
-	if (precision < Decimal::MAX_WIDTH_INT64) {
+	if (precision <= Decimal::MAX_WIDTH_INT64) {
 		return Value::DECIMAL(Hugeint::Cast<int64_t>(unscaled), precision, scale);
 	}
 	return Value::DECIMAL(unscaled, precision, scale);
